@@ -7,6 +7,9 @@
   padding: 0;
   box-sizing: border-box;
 }
+.cl-userButtonPopoverActionButton:hover * {
+  color: white !important;
+}
 
 /* ======== stream css overrides ======== */
 .str-video__call-stats {
@@ -109,4 +112,49 @@
     animation-timing-function: ease-in;
     width: 100%;
   }
+}
+
+
+
+
+
+/* 1. Fix the Clerk Hover Background & Text */
+.cl-userButtonPopoverActionButton:hover {
+  background-color: #0E78F9 !important; /* Forces your blue-1 */
+}
+
+.cl-userButtonPopoverActionButton:hover * {
+  color: white !important; /* Keeps text and icons white on hover */
+}
+
+/* 2. Fix the Clerk Popover Card Background */
+.cl-userButtonPopoverCard {
+  background-color: #161925 !important; /* Matches your bg-dark-1 */
+  border: 1px solid #1e293b !important;
+}
+
+/* 3. Ensure User Details are visible */
+.cl-userButtonPopoverMain {
+  background-color: #161925 !important;
+}
+
+.cl-userPreviewMainIdentifier {
+  color: white !important;
+}
+
+.cl-userPreviewSecondaryIdentifier {
+  color: #adb7be !important; /* Sky-1 color for email */
+}
+
+/* 4. Completely hide the footer in the User Button */
+.cl-userButtonPopoverFooter {
+  display: none !important;
+}
+
+/* 5. Fix for the ASUS Vivobook sidebar floor gap */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #161925; /* Prevents white flashes on load */
 }

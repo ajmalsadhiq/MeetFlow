@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
+  useCall,
   CallControls,
   CallParticipantsList,
   CallStatsButton,
@@ -29,12 +30,24 @@ const MeetingRoom = () => {
   const searchParams = useSearchParams();
   const isPersonalRoom = !!searchParams.get('personal');
   const router = useRouter();
+  const call = useCall();
   const [layout, setLayout] = useState<CallLayoutType>('speaker-left');
   const [showParticipants, setShowParticipants] = useState(false);
   const { useCallCallingState } = useCallStateHooks();
 
   // for more detail about types of CallingState see: https://getstream.io/video/docs/react/ui-cookbook/ringing-call/#incoming-call-panel
   const callingState = useCallCallingState();
+
+  
+
+  useEffect(() => {
+    return () => {
+      // Only leave if we haven't left already
+      if (call && call.state.callingState !== CallingState.LEFT) {
+        call.leave();
+      }
+    };
+  }, [call]);
 
   if (callingState !== CallingState.JOINED) return <Loader />;
 
@@ -65,7 +78,10 @@ const MeetingRoom = () => {
       </div>
       {/* video layout and call controls */}
       <div className="fixed bottom-0 flex w-full items-center justify-center gap-5">
-        <CallControls onLeave={() => router.push(`/`)} />
+        <CallControls onLeave={() => {
+          call?.leave();
+          router.push('/');
+        }} />
 
         <DropdownMenu>
           <div className="flex items-center">

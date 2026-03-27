@@ -38,7 +38,7 @@ export default function RootLayout({
           },
         }}
       >
-        <body className={`${inter.className} bg-dark-2`}>
+        <body className={`${inter.className} bg-dark-2`} style={{ zoom: "0.88" }}>
           <Toaster />
           {children}
         </body>

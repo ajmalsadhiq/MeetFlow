@@ -1,13 +1,12 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
-import { UserButton } from '@clerk/nextjs'
-import { SignedIn } from '@clerk/nextjs'
-
+import { UserButton, SignedIn } from '@clerk/nextjs';
 import MobileNav from './MobileNav';
 
 const Navbar = () => {
   return (
-    <nav className="flex-between fixed z-50 w-full bg-dark-1 px-6 py-4 lg:px-10">
+    <nav className="flex-between fixed z-[100] w-full bg-dark-1 px-6 py-4 lg:px-10">
       <Link href="/" className="flex items-center gap-1">
         <Image
           src="/icons/logo.svg"
@@ -20,9 +19,17 @@ const Navbar = () => {
           YOOM
         </p>
       </Link>
+      
       <div className="flex-between gap-5">
         <SignedIn>
-          <UserButton afterSignOutUrl="/sign-in" />
+<UserButton 
+    afterSignOutUrl="/sign-in"
+    appearance={{
+      elements: {
+        userButtonPopoverCard: 'bg-dark-1 border border-gray-800',
+      }
+    }}
+  />
         </SignedIn>
 
         <MobileNav />
