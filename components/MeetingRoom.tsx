@@ -26,6 +26,22 @@ import { cn } from '@/lib/utils';
 
 type CallLayoutType = 'grid' | 'speaker-left' | 'speaker-right';
 
+// Fixed TypeScript version of the kill switch
+const killAllMediaTracks = () => {
+  if (typeof window !== 'undefined' && navigator.mediaDevices) {
+    const mediaElements = document.querySelectorAll<HTMLVideoElement | HTMLAudioElement>('video, audio');
+    mediaElements.forEach((el) => {
+      if (el.srcObject instanceof MediaStream) {
+        el.srcObject.getTracks().forEach((track) => {
+          track.stop();
+          track.enabled = false;
+        });
+        el.srcObject = null;
+      }
+    });
+  }
+};
+
 const MeetingRoom = () => {
   const searchParams = useSearchParams();
   const isPersonalRoom = !!searchParams.get('personal');
@@ -35,17 +51,19 @@ const MeetingRoom = () => {
   const [showParticipants, setShowParticipants] = useState(false);
   const { useCallCallingState } = useCallStateHooks();
 
-  // for more detail about types of CallingState see: https://getstream.io/video/docs/react/ui-cookbook/ringing-call/#incoming-call-panel
   const callingState = useCallCallingState();
-
-  
 
   useEffect(() => {
     return () => {
-      // Only leave if we haven't left already
-      if (call && call.state.callingState !== CallingState.LEFT) {
-        call.leave();
+      if (call) {
+        call.camera.disable();
+        call.microphone.disable();
+        if (call.state.callingState !== CallingState.LEFT) {
+          call.leave();
+        }
       }
+      // KILL LIGHT INSTANTLY
+      killAllMediaTracks();
     };
   }, [call]);
 
@@ -53,12 +71,9 @@ const MeetingRoom = () => {
 
   const CallLayout = () => {
     switch (layout) {
-      case 'grid':
-        return <PaginatedGridLayout />;
-      case 'speaker-right':
-        return <SpeakerLayout participantsBarPosition="left" />;
-      default:
-        return <SpeakerLayout participantsBarPosition="right" />;
+      case 'grid': return <PaginatedGridLayout />;
+      case 'speaker-right': return <SpeakerLayout participantsBarPosition="left" />;
+      default: return <SpeakerLayout participantsBarPosition="right" />;
     }
   };
 
@@ -68,35 +83,39 @@ const MeetingRoom = () => {
         <div className=" flex size-full max-w-[1000px] items-center">
           <CallLayout />
         </div>
-        <div
-          className={cn('h-[calc(100vh-86px)] hidden ml-2', {
-            'show-block': showParticipants,
-          })}
-        >
+        <div className={cn('h-[calc(100vh-86px)] hidden ml-2', { 'show-block': showParticipants })}>
           <CallParticipantsList onClose={() => setShowParticipants(false)} />
         </div>
       </div>
-      {/* video layout and call controls */}
-      <div className="fixed bottom-0 flex w-full items-center justify-center gap-5">
-        <CallControls onLeave={() => {
-          call?.leave();
-          router.push('/');
-        }} />
+
+      <div className="fixed bottom-0 flex w-full items-center justify-center gap-5 flex-wrap">
+        <CallControls 
+          onLeave={async () => {
+            // 1. Hardware cleanup first (safe to do regardless of call state)
+            await call?.camera.disable();
+            await call?.microphone.disable();
+            killAllMediaTracks();
+
+            // 2. Only call leave if we are NOT already in the LEFT state
+            if (call && call.state.callingState !== CallingState.LEFT) {
+              await call.leave();
+            }
+            
+            // 3. Always redirect
+            router.push('/');
+          }} 
+        />
 
         <DropdownMenu>
           <div className="flex items-center">
-            <DropdownMenuTrigger className="cursor-pointer rounded-2xl bg-[#19232d] px-4 py-2 hover:bg-[#4c535b]  ">
+            <DropdownMenuTrigger className="cursor-pointer rounded-2xl bg-[#19232d] px-4 py-2 hover:bg-[#4c535b]">
               <LayoutList size={20} className="text-white" />
             </DropdownMenuTrigger>
           </div>
           <DropdownMenuContent className="border-dark-1 bg-dark-1 text-white">
             {['Grid', 'Speaker-Left', 'Speaker-Right'].map((item, index) => (
               <div key={index}>
-                <DropdownMenuItem
-                  onClick={() =>
-                    setLayout(item.toLowerCase() as CallLayoutType)
-                  }
-                >
+                <DropdownMenuItem onClick={() => setLayout(item.toLowerCase() as CallLayoutType)}>
                   {item}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="border-dark-1" />
@@ -104,9 +123,10 @@ const MeetingRoom = () => {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
         <CallStatsButton />
         <button onClick={() => setShowParticipants((prev) => !prev)}>
-          <div className=" cursor-pointer rounded-2xl bg-[#19232d] px-4 py-2 hover:bg-[#4c535b]  ">
+          <div className="cursor-pointer rounded-2xl bg-[#19232d] px-4 py-2 hover:bg-[#4c535b]">
             <Users size={20} className="text-white" />
           </div>
         </button>

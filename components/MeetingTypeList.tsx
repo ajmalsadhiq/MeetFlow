@@ -67,7 +67,11 @@ const MeetingTypeList = () => {
 
   if (!client || !user) return <Loader />;
 
-  const meetingLink = `${process.env.NEXT_PUBLIC_BASE_URL}/meeting/${callDetail?.id}`;
+  // Instead of just using the process.env directly, create a fallback
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+                  (typeof window !== 'undefined' ? window.location.origin : '');
+
+  const meetingLink = `${baseUrl}/meeting/${callDetail?.id}`;
 
   return (
     <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
@@ -155,7 +159,12 @@ const MeetingTypeList = () => {
         title="Type the link here"
         className="text-center"
         buttonText="Join Meeting"
-        handleClick={() => router.push(values.link)}
+        handleClick={() => {
+          // This logic extracts the ID if they paste a full link, 
+          // or just uses the ID if they type that instead.
+          const meetingId = values.link.split('/').pop(); 
+          router.push(`/meeting/${meetingId}`);
+        }}
       >
         <Input
           placeholder="Meeting link"
