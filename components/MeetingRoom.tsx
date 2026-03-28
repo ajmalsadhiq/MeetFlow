@@ -26,24 +26,35 @@ import { cn } from '@/lib/utils';
 
 type CallLayoutType = 'grid' | 'speaker-left' | 'speaker-right';
 
+// Method 1: Kill tracks on all video/audio DOM elements
+// Method 2: Request a dummy stream then immediately stop it
+// to force the browser to release the hardware lock fully
 const killAllMediaTracks = () => {
-  if (typeof window !== 'undefined') {
-    const mediaElements = document.querySelectorAll<
-      HTMLVideoElement | HTMLAudioElement
-    >('video, audio');
-    mediaElements.forEach((el) => {
-      if (el.srcObject instanceof MediaStream) {
-        el.srcObject.getTracks().forEach((track) => {
-          track.stop();
-          track.enabled = false;
-        });
-        el.srcObject = null;
-      }
+  if (typeof window === 'undefined') return;
+
+  const mediaElements = document.querySelectorAll<HTMLVideoElement | HTMLAudioElement>('video, audio');
+  mediaElements.forEach((el) => {
+    if (el.srcObject instanceof MediaStream) {
+      el.srcObject.getTracks().forEach((track) => {
+        track.stop();
+        track.enabled = false;
+      });
+      el.srcObject = null;
+    }
+  });
+
+  // Force browser to release hardware lock even for tracks
+  // Stream SDK holds in memory (not attached to any DOM element)
+  navigator.mediaDevices
+    ?.getUserMedia({ video: true, audio: true })
+    .then((stream) => {
+      stream.getTracks().forEach((track) => track.stop());
+    })
+    .catch(() => {
+      // ignore — permission may already be revoked
     });
-  }
 };
 
-// Shown to guests when the host ends the call for everyone
 const MeetingEndedScreen = ({ onClose }: { onClose: () => void }) => (
   <div className="relative flex h-screen w-full flex-col items-center justify-center gap-6 bg-dark-1 text-white">
     <button
@@ -55,7 +66,6 @@ const MeetingEndedScreen = ({ onClose }: { onClose: () => void }) => (
     </button>
 
     <div className="flex flex-col items-center gap-4 text-center">
-      {/* Icon */}
       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/20">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -96,29 +106,23 @@ const MeetingRoom = () => {
 
   const [layout, setLayout] = useState<CallLayoutType>('speaker-left');
   const [showParticipants, setShowParticipants] = useState(false);
-  // NEW: track whether the host ended the call for everyone
   const [meetingEnded, setMeetingEnded] = useState(false);
 
   const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
 
-  // NEW: Listen for the 'call.ended' event from Stream.
-  // This fires on ALL participants when the host calls call.endCall().
-  // Without this, guests are stuck on <Loader /> forever.
+  // Listen for host ending the call for everyone
   useEffect(() => {
     if (!call) return;
 
     const handleCallEnded = () => {
-      // Kill hardware immediately
+      killAllMediaTracks(); // hardware first
       call.camera.disable().catch(() => {});
       call.microphone.disable().catch(() => {});
-      killAllMediaTracks();
-      // Show the ended screen instead of redirecting blindly
       setMeetingEnded(true);
     };
 
     call.on('call.ended', handleCallEnded);
-
     return () => {
       call.off('call.ended', handleCallEnded);
     };
@@ -128,13 +132,12 @@ const MeetingRoom = () => {
   useEffect(() => {
     return () => {
       if (!call) return;
+      killAllMediaTracks(); // hardware first
       call.camera.disable().catch(() => {});
       call.microphone.disable().catch(() => {});
-      killAllMediaTracks();
     };
   }, [call]);
 
-  // Show ended screen for guests when host ends the call
   if (meetingEnded) {
     return <MeetingEndedScreen onClose={() => router.push('/')} />;
   }
@@ -153,11 +156,11 @@ const MeetingRoom = () => {
   };
 
   const handleLeave = async () => {
+    killAllMediaTracks(); // hardware first
     await Promise.allSettled([
       call?.camera.disable(),
       call?.microphone.disable(),
     ]);
-    killAllMediaTracks();
 
     if (call && call.state.callingState !== CallingState.LEFT) {
       await call.leave();
