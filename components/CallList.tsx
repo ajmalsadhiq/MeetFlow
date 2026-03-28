@@ -8,6 +8,11 @@ import MeetingCard from './MeetingCard';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+// FIX: Centralised base URL helper — works in dev AND production.
+const getBaseUrl = () =>
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  (typeof window !== 'undefined' ? window.location.origin : '');
+
 const CallList = ({ type }: { type: 'ended' | 'upcoming' | 'recordings' }) => {
   const router = useRouter();
   const { endedCalls, upcomingCalls, callRecordings, isLoading } =
@@ -89,7 +94,8 @@ const CallList = ({ type }: { type: 'ended' | 'upcoming' | 'recordings' }) => {
             link={
               type === 'recordings'
                 ? (meeting as CallRecording).url
-                : `${process.env.NEXT_PUBLIC_BASE_URL}/meeting/${(meeting as Call).id}`
+                // FIX: use getBaseUrl() instead of process.env directly
+                : `${getBaseUrl()}/meeting/${(meeting as Call).id}`
             }
             buttonIcon1={type === 'recordings' ? '/icons/play.svg' : undefined}
             buttonText={type === 'recordings' ? 'Play' : 'Start'}

@@ -10,28 +10,6 @@ import {
 import Alert from './Alert';
 import { Button } from './ui/button';
 
-/**
- * BRUTE FORCE CLEANUP
- * Manually stops all media tracks to ensure the camera light turns off.
- */
-const killAllMediaTracks = () => {
-  if (typeof window !== 'undefined' && navigator.mediaDevices) {
-    // We target both video and audio elements
-    const mediaElements = document.querySelectorAll<HTMLVideoElement | HTMLAudioElement>('video, audio');
-    
-    mediaElements.forEach((el) => {
-      if (el.srcObject instanceof MediaStream) {
-        const tracks = el.srcObject.getTracks();
-        tracks.forEach((track) => {
-          track.stop();
-          track.enabled = false;
-        });
-        el.srcObject = null;
-      }
-    });
-  }
-};
-
 const MeetingSetup = ({
   setIsSetupComplete,
 }: {
@@ -43,8 +21,11 @@ const MeetingSetup = ({
   const call = useCall();
 
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isMicCamToggled, setIsMicCamToggled] = useState(false);
 
-  // Update current time every second to handle the 5-min buffer live
+  // FIX: Track joining state to prevent double-clicks and show loading
+  const [isJoining, setIsJoining] = useState(false);
+
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(interval);
@@ -54,8 +35,8 @@ const MeetingSetup = ({
     throw new Error('useStreamCall must be used within a StreamCall component.');
   }
 
-  const [isMicCamToggled, setIsMicCamToggled] = useState(false);
-
+  // FIX: Split into two separate effects.
+  // Effect 1 — handle mic/cam toggle only (no cleanup that disables devices)
   useEffect(() => {
     if (isMicCamToggled) {
       call.camera.disable();
@@ -64,22 +45,31 @@ const MeetingSetup = ({
       call.camera.enable();
       call.microphone.enable();
     }
+    // No cleanup here — we do NOT want to disable on every toggle change.
+    // Cleanup lives in Effect 2 (unmount only).
+  }, [isMicCamToggled, call.camera, call.microphone]);
 
-    /**
-     * CLEANUP ON UNMOUNT
-     * Runs when clicking 'Join' or leaving the page.
-     */
+  // FIX: Effect 2 — cleanup runs ONLY on unmount (empty dep array)
+  // This prevents the SFU error caused by disabling devices on every
+  // dependency change in the original single useEffect.
+  useEffect(() => {
     return () => {
+      // Safe to call here — this only runs when MeetingSetup unmounts
+      // (i.e. after join is complete and MeetingRoom takes over)
       call.camera.disable();
       call.microphone.disable();
-      killAllMediaTracks(); // Force hardware release
     };
-  }, [isMicCamToggled, call.camera, call.microphone]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // empty deps = unmount only
 
   // Buffer Logic
   const allowEarlyJoinBy = 5 * 60 * 1000;
-  const earliestJoinTime = callStartsAt ? new Date(callStartsAt).getTime() - allowEarlyJoinBy : null;
-  const callTimeNotArrived = earliestJoinTime ? currentTime.getTime() < earliestJoinTime : false;
+  const earliestJoinTime = callStartsAt
+    ? new Date(callStartsAt).getTime() - allowEarlyJoinBy
+    : null;
+  const callTimeNotArrived = earliestJoinTime
+    ? currentTime.getTime() < earliestJoinTime
+    : false;
   const callHasEnded = !!callEndedAt;
 
   if (callTimeNotArrived)
@@ -96,6 +86,22 @@ const MeetingSetup = ({
         iconUrl="/icons/call-ended.svg"
       />
     );
+
+  // FIX: await call.join() before setting setup complete.
+  // Original code called join() without await, so MeetingRoom mounted
+  // before the SFU handshake finished — causing the Host to miss the
+  // initial participants snapshot and stay stuck at 1 participant.
+  const handleJoin = async () => {
+    if (isJoining) return;
+    setIsJoining(true);
+    try {
+      await call.join({ create: true });
+      setIsSetupComplete(true);
+    } catch (error) {
+      console.error('[MeetingSetup] call.join() failed:', error);
+      setIsJoining(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center gap-3 text-white">
@@ -114,12 +120,10 @@ const MeetingSetup = ({
       </div>
       <Button
         className="rounded-md bg-green-500 px-4 py-2.5"
-        onClick={() => {
-          call.join();
-          setIsSetupComplete(true);
-        }}
+        onClick={handleJoin}
+        disabled={isJoining}
       >
-        Join meeting
+        {isJoining ? 'Joining...' : 'Join meeting'}
       </Button>
     </div>
   );

@@ -8,6 +8,13 @@ import { useGetCallById } from "@/hooks/useGetCallById";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 
+// FIX: Centralised base URL helper — works in dev AND production.
+// process.env.NEXT_PUBLIC_BASE_URL should be set per environment.
+// window.location.origin is the safe fallback if the env var is missing.
+const getBaseUrl = () =>
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  (typeof window !== 'undefined' ? window.location.origin : '');
+
 const Table = ({
   title,
   description,
@@ -53,7 +60,8 @@ const PersonalRoom = () => {
     router.push(`/meeting/${meetingId}?personal=true`);
   };
 
-  const meetingLink = `${process.env.NEXT_PUBLIC_BASE_URL}/meeting/${meetingId}?personal=true`;
+  // FIX: use getBaseUrl() instead of process.env directly
+  const meetingLink = `${getBaseUrl()}/meeting/${meetingId}?personal=true`;
 
   return (
     <section className="flex size-full flex-col gap-10 text-white">
