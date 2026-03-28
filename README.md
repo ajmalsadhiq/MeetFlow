@@ -14,7 +14,6 @@
     <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS">
   </p>
 
-  <img src="/public/icons/logo.svg" alt="MeetFlow Preview" width="100%">
 </div>
 
 ---
@@ -50,7 +49,7 @@
 
 ---
 
-## Getting Started
+
 
 ### Prerequisites
 
@@ -59,47 +58,6 @@
 - A [Clerk](https://clerk.com/) account
 - A [Stream](https://getstream.io/) account
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/yourusername/MeetFlow.git
-cd MeetFlow
-```
-
-### 2. Install dependencies
-
-```bash
-npm install
-```
-
-### 3. Set up environment variables
-
-Create a `.env.local` file in the root directory:
-
-```env
-# App
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
-
-# Clerk
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-CLERK_SECRET_KEY=your_clerk_secret_key
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-
-# Stream
-NEXT_PUBLIC_STREAM_API_KEY=your_stream_api_key
-STREAM_SECRET_KEY=your_stream_secret_key
-```
-
-### 4. Run the development server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
 
 ## Project Structure
 
@@ -133,35 +91,10 @@ MeetFlow/
 
 ## Deployment
 
-### Deploy to Vercel
+### Deployed through Vercel
 
-1. Push your code to GitHub
-2. Import the project on [Vercel](https://vercel.com)
-3. Add all environment variables from `.env.local`
-4. Set `NEXT_PUBLIC_BASE_URL` to your Vercel deployment URL
-5. Click **Deploy**
 
----
 
-## Environment Variables Reference
-
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_BASE_URL` | Your app's base URL (e.g. `https://yourapp.vercel.app`) |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
-| `CLERK_SECRET_KEY` | Clerk secret key |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Sign in route (`/sign-in`) |
-| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Sign up route (`/sign-up`) |
-| `NEXT_PUBLIC_STREAM_API_KEY` | Stream API key |
-| `STREAM_SECRET_KEY` | Stream secret key |
-
----
-
-## License
-
-This project is open source and available under the [MIT License](LICENSE).
-
----
 
 <div align="center">
   <p>Built with ❤️ using Next.js & Stream</p>
